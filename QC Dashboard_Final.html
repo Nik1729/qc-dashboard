@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QC Sample Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:#f5f0e8}
+:root{--eg:#004b3a;--mg:#5ECaa6;--ey:#f4da70;--er:#fb9a7e;--eb:#7DCCD0;--cream:#f5f0e8;--cream2:#ebe4d6;--cream3:#ddd5c2;--white:#fff;--td:#1a2e1a;--tmuted:#7a8a7a;--border:#e0d8ca}
+.hdr{background:var(--eg);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.hdr h1{color:#fff;font-size:15px;font-weight:700}.hdr p{color:rgba(255,255,255,.5);font-size:10px;margin-top:2px}
+.hstat{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:10px;padding:7px 18px;display:flex;align-items:center;gap:16px;flex-shrink:0}
+.hsi{text-align:center}.hsi .v{font-size:22px;font-weight:700;color:#fff;line-height:1}.hsi.pend .v{color:var(--er)}.hsi .l{font-size:9px;color:rgba(255,255,255,.5);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+.hd2{width:1px;height:34px;background:rgba(255,255,255,.2)}
+/* FILTER SECTION */
+.fsec{background:var(--white);border-bottom:1px solid var(--cream2);padding:12px 20px}
+.ftitle{font-size:10px;font-weight:700;color:var(--eg);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+.frow{display:grid;gap:8px;margin-bottom:8px}
+.frow.r1{grid-template-columns:2fr 1fr 1fr 1fr 1fr 1fr 1fr}
+.frow.r2{grid-template-columns:2fr 2.5fr 2.5fr 1fr}
+.fg{display:flex;flex-direction:column;gap:3px;position:relative}
+.fg>label{font-size:9px;font-weight:700;color:var(--eg);text-transform:uppercase;letter-spacing:.05em}
+.sw{position:relative}
+.sw input{width:100%;font-size:11px;padding:0 22px 0 26px;height:32px;border:1.5px solid var(--cream3);border-radius:8px;background:var(--cream);color:var(--td);outline:none;font-family:inherit}
+.sw input:focus{border-color:var(--eg);background:#fff}
+.sw .si{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--tmuted);font-size:11px;pointer-events:none}
+.sw .clr{position:absolute;right:6px;top:50%;transform:translateY(-50%);color:var(--tmuted);font-size:13px;cursor:pointer;display:none;background:none;border:none;padding:0}
+.sw .clr.vis{display:block}.sw .clr:hover{color:var(--er)}
+.ddl{position:absolute;top:calc(100% + 3px);left:0;right:0;background:#fff;border:1.5px solid var(--border);border-radius:8px;z-index:999;max-height:150px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);display:none}
+.ddl.open{display:block}
+.ddi{padding:6px 10px;font-size:11px;cursor:pointer;color:var(--td)}.ddi:hover,.ddi.sel{background:var(--cream);color:var(--eg);font-weight:600}.ddi.ph{color:var(--tmuted);font-style:italic;pointer-events:none;font-size:10px}.ddi.dis{color:var(--cream3);pointer-events:none}
+/* date range + quick buttons */
+.drw{display:flex;align-items:center;gap:3px;height:32px}
+.drw input[type=date]{flex:1;font-size:10px;padding:0 4px;height:100%;border:1.5px solid var(--cream3);border-radius:8px;background:var(--cream);color:var(--td);outline:none;min-width:0;font-family:inherit}
+.drw input[type=date]:focus{border-color:var(--eg)}
+.dr-sep{font-size:9px;color:var(--tmuted);flex-shrink:0}
+.dr-x{background:none;border:none;color:var(--tmuted);font-size:14px;cursor:pointer;padding:0 2px}.dr-x:hover{color:var(--er)}
+.dquick{display:flex;gap:3px;margin-top:3px}
+.dqbtn{font-size:9px;font-weight:600;padding:2px 7px;border:1px solid var(--cream3);border-radius:5px;background:var(--cream);color:var(--tmuted);cursor:pointer;font-family:inherit;transition:all .1s}
+.dqbtn:hover,.dqbtn.active{background:var(--eg);color:#fff;border-color:var(--eg)}
+/* RANGE SLIDER */
+.rbox{display:flex;flex-direction:column;gap:3px}
+.rbox>label{font-size:9px;font-weight:700;color:var(--eg);text-transform:uppercase;letter-spacing:.05em}
+.rcard{height:32px;display:flex;align-items:center;gap:5px;background:var(--cream);border:1.5px solid var(--cream3);border-radius:8px;padding:0 8px;transition:border .15s}
+.rcard.on{border-color:var(--eg);background:#fff}
+.rnum{width:40px;font-size:10px;font-family:inherit;padding:2px 3px;border:1px solid var(--cream3);border-radius:5px;background:#fff;color:var(--td);outline:none;text-align:center;flex-shrink:0;height:22px;-moz-appearance:textfield}
+.rnum::-webkit-inner-spin-button,.rnum::-webkit-outer-spin-button{-webkit-appearance:none}
+.rnum:focus{border-color:var(--eg)}
+.rtrack{flex:1;position:relative;height:4px;background:var(--cream3);border-radius:2px;cursor:pointer}
+.rfill{position:absolute;top:0;height:100%;background:var(--eg);border-radius:2px;pointer-events:none}
+.rtrack input[type=range]{position:absolute;left:0;top:-8px;width:100%;height:20px;margin:0;padding:0;opacity:0;cursor:pointer;-webkit-appearance:none;appearance:none}
+.rxbtn{font-size:9px;color:var(--tmuted);cursor:pointer;background:none;border:none;padding:0;text-decoration:underline;display:none;font-family:inherit;flex-shrink:0}
+.rxbtn.vis{display:inline}.rxbtn:hover{color:var(--er)}
+.rdot{position:absolute;top:50%;width:14px;height:14px;background:var(--eg);border:2.5px solid #fff;border-radius:50%;transform:translate(-50%,-50%);pointer-events:all;cursor:grab;box-shadow:0 1px 4px rgba(0,0,0,.25);z-index:3;transition:transform .1s}
+.rdot:hover{transform:translate(-50%,-50%) scale(1.2)}
+.rdot:active{cursor:grabbing;transform:translate(-50%,-50%) scale(1.15)}
+.rdot.hi{background:var(--mg)}
+.rlimits{display:flex;justify-content:space-between;margin-top:2px}
+.rlimits span{font-size:9px;color:var(--tmuted)}
+/* CUPPING FILTER PANEL */
+.cup-filter-wrap{margin-top:6px}
+.cup-filter-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;padding:5px 10px;border:1.5px solid var(--cream3);border-radius:8px 8px 8px 8px;background:var(--cream);transition:all .15s}
+.cup-filter-toggle:hover{border-color:var(--eg)}
+.cup-filter-toggle.active{border-color:var(--eg);background:#fff}
+.cft-label{font-size:9px;font-weight:700;color:var(--eg);text-transform:uppercase;letter-spacing:.05em}
+.cft-badge{background:var(--eg);color:#fff;font-size:8px;font-weight:700;padding:1px 5px;border-radius:10px;display:none}
+.cft-badge.vis{display:inline}
+.cft-arrow{font-size:10px;color:var(--tmuted);transition:transform .2s}
+.cup-filter-toggle.open .cft-arrow{transform:rotate(180deg)}.cup-filter-toggle.open{border-bottom-left-radius:0;border-bottom-right-radius:0;border-color:var(--eg);background:#fff}
+.cup-filter-body{display:none;background:var(--cream);border:1.5px solid var(--eg);border-top:none;border-radius:0 8px 8px 8px;padding:8px 10px 7px;width:100%}
+.cup-filter-body.open{display:block}
+.cup-filter-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px 12px}
+.cup-rbox{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cup-rbox>label{font-size:9px;font-weight:600;color:var(--td);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cup-rcard{height:24px;display:flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--cream3);border-radius:6px;padding:0 5px;transition:border .15s}
+.cup-rcard.on{border-color:var(--eg)}
+.cup-rnum{width:28px;font-size:9px;font-family:inherit;padding:1px 2px;border:1px solid var(--cream3);border-radius:4px;background:var(--cream);color:var(--td);outline:none;text-align:center;flex-shrink:0;height:17px;-moz-appearance:textfield}
+.cup-rnum::-webkit-inner-spin-button,.cup-rnum::-webkit-outer-spin-button{-webkit-appearance:none}
+.cup-rnum:focus{border-color:var(--eg)}
+.cup-rtrack{flex:1;position:relative;height:3px;background:var(--cream3);border-radius:2px;cursor:pointer}
+.cup-rfill{position:absolute;top:0;height:100%;background:var(--eg);border-radius:2px;pointer-events:none}
+.cup-rtrack input[type=range]{position:absolute;left:0;top:-6px;width:100%;height:16px;margin:0;padding:0;opacity:0;cursor:pointer;-webkit-appearance:none;appearance:none}
+.cup-rdot{position:absolute;top:50%;width:11px;height:11px;background:var(--eg);border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);pointer-events:all;cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.2);z-index:3}
+.cup-rdot:active{cursor:grabbing}
+.cup-rdot.hi{background:var(--mg)}
+.cup-clr-all{font-size:9px;color:var(--tmuted);cursor:pointer;background:none;border:none;padding:0;text-decoration:underline;font-family:inherit;margin-top:6px}
+.cup-clr-all:hover{color:var(--er)}
+/* FOOTER */
+.fbot{display:flex;align-items:center;gap:8px;margin-top:6px}
+.rbtn{font-size:10px;font-weight:600;padding:4px 12px;border:1.5px solid var(--eg);border-radius:20px;background:transparent;color:var(--eg);cursor:pointer;font-family:inherit}.rbtn:hover{background:var(--eg);color:#fff}
+.rcnt{font-size:10px;color:var(--tmuted)}
+/* BODY */
+.body{padding:12px 20px 0}
+.krow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.kc{background:var(--white);border-radius:10px;padding:11px 14px;border:1px solid var(--border);border-left:3px solid transparent}
+.kc.kg{border-left-color:var(--eg)}.kc.ky{border-left-color:var(--ey)}.kc.kr{border-left-color:var(--er)}.kc.kb{border-left-color:var(--eb)}
+.kl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tmuted);margin-bottom:4px}
+.kv{font-size:20px;font-weight:700;color:var(--td)}.kc.muted .kv{color:var(--cream3)}
+.kwgt{font-size:8px;color:var(--tmuted);margin-top:2px;font-style:italic}
+.sdet{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin-bottom:12px;border-top:3px solid var(--eg)}
+.sdet-t{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--eg);margin-bottom:10px}
+.sdg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sdi .sl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--tmuted);margin-bottom:2px}
+.sdi .sv{font-size:12px;font-weight:600;color:var(--td)}
+.p3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.pnl{background:var(--white);border-radius:12px;padding:15px;border:1px solid var(--border)}
+.ptitle{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tmuted);margin-bottom:12px}
+.pmode{font-size:9px;font-weight:600;color:var(--mg);background:rgba(94,202,166,.12);padding:2px 7px;border-radius:20px;margin-left:6px;text-transform:none;letter-spacing:0}
+.sc-layout{display:grid;grid-template-columns:130px 1fr;gap:10px;align-items:center}
+.dwrap{position:relative;width:130px;height:130px;flex-shrink:0}
+.dlbl{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none}
+.dlbl .dp{font-size:14px;font-weight:700;color:var(--eg)}.dlbl .dt{font-size:8px;font-weight:600;color:var(--tmuted);margin-top:1px}
+.stbl{width:100%;border-collapse:collapse;font-size:11px}
+.stbl th{color:var(--tmuted);font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.04em;padding:2px 4px;border-bottom:1px solid var(--cream2)}
+.stbl td{padding:3px 4px;color:var(--td);font-weight:500}
+.stbl tr.hi td{font-weight:700;color:var(--eg)}
+.scdot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:2px;vertical-align:middle}
+.dlabel{font-size:10px;font-weight:700;color:var(--td);margin-bottom:6px;display:block}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.tag{background:var(--cream);color:#3a4a3a;font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px}
+.tag.pri{background:#fde8e0;color:#8a2a12}.tag.tri{background:#e8f0fe;color:#1a3a8a}
+.ftots{border-top:1px solid var(--cream2);padding-top:8px;display:flex;flex-direction:column;gap:4px}
+.frd{display:flex;justify-content:space-between;font-size:11px}
+.frd .fl{color:var(--tmuted)}.frd .fv{font-weight:700;color:var(--eg)}
+.frd.ft .fl{font-weight:700;color:var(--td)}.frd.ft .fv{font-size:13px}
+.ndsm{color:var(--tmuted);font-size:11px;font-style:italic}
+.emp{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:28px 12px;text-align:center}
+.emp-icon{font-size:26px;color:var(--cream3)}.emp-txt{font-size:11px;color:var(--tmuted);line-height:1.5}
+.cupsec{margin-bottom:12px}
+.cuppnl{background:var(--eg);border-radius:12px;padding:16px}
+.cupttl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.5);margin-bottom:12px}
+.cupgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.cupcard{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:12px}
+.ccsno{font-size:8px;font-weight:700;color:var(--ey);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.cbars{display:flex;flex-direction:column;gap:6px}
+.cbr{display:flex;align-items:center;gap:5px}
+.cbl{font-size:9px;color:rgba(255,255,255,.6);width:76px;flex-shrink:0}
+.cbt{flex:1;height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}
+.cbf{height:100%;border-radius:3px}
+.cbv{font-size:9px;font-weight:700;color:#fff;width:22px;text-align:right;flex-shrink:0}
+.cupnone{font-size:11px;color:rgba(255,255,255,.35);font-style:italic}
+.tblpnl{background:var(--white);border-radius:12px;overflow:hidden;border:1px solid var(--border);margin-bottom:4px}
+.tblpnl .ptitle{padding:13px 15px 0}
+.twrap{overflow-x:auto}
+table.mt{width:100%;border-collapse:collapse;font-size:10px}
+table.mt th{background:var(--cream);padding:7px 9px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--tmuted);white-space:nowrap;border-bottom:1px solid var(--cream2)}
+table.mt td{padding:7px 9px;border-bottom:1px solid var(--cream2);color:var(--td);white-space:nowrap}
+table.mt tr:last-child td{border-bottom:none}
+table.mt tr:hover td{background:var(--cream)}
+.spa{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;background:#d4f0e0;color:#1a6e3a}
+.spp{display:inline-block;padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;background:#fde8e0;color:#a0341a}
+.mcp{color:#1a6e3a;font-weight:600;font-size:9px}
+.ndmsg{text-align:center;padding:2rem;color:var(--tmuted);font-size:11px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div><h1>QC Sample Dashboard</h1><p>Green Coffee Quality Control</p></div>
+  <div class="hstat">
+    <div class="hsi"><div class="v" id="hdr-total">—</div><div class="l">Total Samples</div></div>
+    <div class="hd2"></div>
+    <div class="hsi pend"><div class="v" id="hdr-pend">—</div><div class="l">Pending Approval</div></div>
+  </div>
+</div>
+
+<div class="fsec">
+  <div class="ftitle">Filters</div>
+
+  <div class="frow r1">
+    <div class="fg">
+      <label>Date range</label>
+      <div class="drw">
+        <input type="date" id="f-from" onchange="clearQuick();go()">
+        <span class="dr-sep">→</span>
+        <input type="date" id="f-to" onchange="clearQuick();go()">
+        <button class="dr-x" onclick="clrDates()">×</button>
+      </div>
+      <div class="dquick">
+        <button class="dqbtn" id="dq-today" onclick="setQuick('today')">Today</button>
+        <button class="dqbtn" id="dq-month" onclick="setQuick('month')">This month</button>
+        <button class="dqbtn" id="dq-year" onclick="setQuick('year')">This year</button>
+      </div>
+    </div>
+    <div class="fg"><label>Contract No.</label><div class="sw"><span class="si">⌕</span><input id="fi-contract" type="text" placeholder="Search…" autocomplete="off" oninput="onFI('contract')" onfocus="openDD('contract')" onblur="blurDD('contract')"><button class="clr" id="xb-contract" onclick="clrF('contract')">×</button></div><div class="ddl" id="dd-contract"></div></div>
+    <div class="fg"><label>Party</label><div class="sw"><span class="si">⌕</span><input id="fi-party" type="text" placeholder="Search…" autocomplete="off" oninput="onFI('party')" onfocus="openDD('party')" onblur="blurDD('party')"><button class="clr" id="xb-party" onclick="clrF('party')">×</button></div><div class="ddl" id="dd-party"></div></div>
+    <div class="fg"><label>Item</label><div class="sw"><span class="si">⌕</span><input id="fi-item" type="text" placeholder="Search…" autocomplete="off" oninput="onFI('item')" onfocus="openDD('item')" onblur="blurDD('item')"><button class="clr" id="xb-item" onclick="clrF('item')">×</button></div><div class="ddl" id="dd-item"></div></div>
+    <div class="fg"><label>Sample No.</label><div class="sw"><span class="si">⌕</span><input id="fi-sample" type="text" placeholder="Search…" autocomplete="off" oninput="onFI('sample')" onfocus="openDD('sample')" onblur="blurDD('sample')"><button class="clr" id="xb-sample" onclick="clrF('sample')">×</button></div><div class="ddl" id="dd-sample"></div></div>
+    <div class="fg"><label>Sample Type</label><div class="sw"><span class="si">⌕</span><input id="fi-type" type="text" placeholder="Search…" autocomplete="off" oninput="onFI('type')" onfocus="openDD('type')" onblur="blurDD('type')"><button class="clr" id="xb-type" onclick="clrF('type')">×</button></div><div class="ddl" id="dd-type"></div></div>
+    <div class="fg"><label>Status</label><div class="sw"><span class="si">⌕</span><input id="fi-status" type="text" placeholder="Search…" autocomplete="off" oninput="onFI('status')" onfocus="openDD('status')" onblur="blurDD('status')"><button class="clr" id="xb-status" onclick="clrF('status')">×</button></div><div class="ddl" id="dd-status"></div></div>
+  </div>
+
+  <div class="frow r2">
+    <div class="fg"><label>Location</label><div class="sw"><span class="si">⌕</span><input id="fi-loc" type="text" placeholder="Search…" autocomplete="off" oninput="onFI('loc')" onfocus="openDD('loc')" onblur="blurDD('loc')"><button class="clr" id="xb-loc" onclick="clrF('loc')">×</button></div><div class="ddl" id="dd-loc"></div></div>
+
+    <div class="rbox">
+      <label>Moisture %</label>
+      <div class="rcard" id="mc-card">
+        <input class="rnum" id="mc-nlo" type="number" step="0.1" placeholder="Min" oninput="numCh('mc')">
+        <div class="rtrack" id="mc-track">
+          <div class="rfill" id="mc-fill"></div>
+          <input type="range" id="mc-rlo" step="0.1">
+          <input type="range" id="mc-rhi" step="0.1">
+          <div class="rdot" id="mc-dlo"></div>
+          <div class="rdot hi" id="mc-dhi"></div>
+        </div>
+        <input class="rnum" id="mc-nhi" type="number" step="0.1" placeholder="Max" oninput="numCh('mc')">
+        <button class="rxbtn" id="mc-rx" onclick="clrR('mc')">Clear</button>
+      </div>
+      <div class="rlimits"><span id="mc-lmin"></span><span id="mc-lmax"></span></div>
+    </div>
+
+    <div class="rbox">
+      <label>Cupping Score</label>
+      <div class="rcard" id="cup-card">
+        <input class="rnum" id="cup-nlo" type="number" min="0" max="5" step="0.1" placeholder="Min" oninput="numCh('cup')">
+        <div class="rtrack" id="cup-track">
+          <div class="rfill" id="cup-fill"></div>
+          <input type="range" id="cup-rlo" min="0" max="5" step="0.1">
+          <input type="range" id="cup-rhi" min="0" max="5" step="0.1">
+          <div class="rdot" id="cup-dlo"></div>
+          <div class="rdot hi" id="cup-dhi"></div>
+        </div>
+        <input class="rnum" id="cup-nhi" type="number" min="0" max="5" step="0.1" placeholder="Max" oninput="numCh('cup')">
+        <button class="rxbtn" id="cup-rx" onclick="clrR('cup')">Clear</button>
+      </div>
+      <div class="rlimits"><span id="cup-lmin">0</span><span id="cup-lmax">5</span></div>
+    </div>
+
+    <div></div>
+  </div>
+
+  <!-- Cupping attribute filters — collapsible -->
+  <div class="cup-filter-wrap">
+    <div class="cup-filter-toggle" id="cft-toggle" onclick="toggleCupFilters()">
+      <span class="cft-label">Cupping attribute filters</span>
+      <span class="cft-badge" id="cft-badge">0 active</span>
+      <span class="cft-arrow">▾</span>
+    </div>
+    <div class="cup-filter-body" id="cft-body">
+      <div class="cup-filter-grid" id="cup-attr-grid"></div>
+      <button class="cup-clr-all" onclick="clrAllCupAttrs()">Clear all cupping filters</button>
+    </div>
+  </div>
+
+  <div class="fbot"><button class="rbtn" onclick="resetAll()">↺ Reset all</button><span class="rcnt" id="rcnt"></span></div>
+</div>
+
+<div class="body">
+  <div class="krow">
+    <div class="kc kg" id="kc-mc"><div class="kl">Wtd Avg Moisture %</div><div class="kv" id="k-mc">—</div><div class="kwgt">weighted by rep. qty</div></div>
+    <div class="kc ky" id="kc-gr"><div class="kl">Wtd Avg Grade %</div><div class="kv" id="k-gr">—</div><div class="kwgt">weighted by rep. qty</div></div>
+    <div class="kc kr" id="kc-df"><div class="kl">Wtd Avg Defects %</div><div class="kv" id="k-df">—</div><div class="kwgt">weighted by rep. qty</div></div>
+    <div class="kc kb" id="kc-yd"><div class="kl">Wtd Avg Yield %</div><div class="kv" id="k-yd">—</div><div class="kwgt">RAW items · wtd by rep. qty</div></div>
+  </div>
+
+  <div class="sdet" id="sdet" style="display:none">
+    <div class="sdet-t" id="sdet-title">Details</div>
+    <div class="sdg" id="sdet-grid"></div>
+  </div>
+
+  <div class="p3">
+    <div class="pnl"><div class="ptitle">Screen<span class="pmode" id="sc-mode" style="display:none"></span></div><div id="sc-wrap"><div class="emp"><div class="emp-icon">▽</div><div class="emp-txt">Apply a filter to see grade % data</div></div></div></div>
+    <div class="pnl"><div class="ptitle">Defects<span class="pmode" id="df-mode" style="display:none"></span></div><div id="df-wrap"><div class="emp"><div class="emp-icon">▽</div><div class="emp-txt">Apply a filter to see defect data</div></div></div></div>
+    <div class="pnl"><div class="ptitle">Triage<span class="pmode" id="tr-mode" style="display:none"></span></div><div id="tr-wrap"><div class="emp"><div class="emp-icon">▽</div><div class="emp-txt">Apply a filter to see triage data</div></div></div></div>
+  </div>
+
+  <div class="cupsec">
+    <div class="cuppnl">
+      <div class="cupttl">Cupping scores (scale of 5)</div>
+      <div class="cupgrid" id="cupgrid"><p class="cupnone">No cupping scores for current selection</p></div>
+    </div>
+  </div>
+
+  <div class="tblpnl">
+    <div class="ptitle">All sample data</div>
+    <div class="twrap">
+      <table class="mt"><thead><tr>
+        <th>Sample No.</th><th>Date</th><th>Item</th><th>Sample Type</th><th>Status</th>
+        <th>Party</th><th>Location</th><th>Storage Loc.</th><th>Dest. Storage</th>
+        <th>Cat. Code</th><th>Lot No.</th><th>Parent Lot</th><th>WO No.</th><th>Shift</th>
+        <th>Contract No.</th><th>Weight</th><th>Rep. Qty</th>
+        <th>MC%</th><th>MC Min</th><th>MC Max</th><th>MC Result</th><th>Yield%</th>
+        <th>Last Modified</th>
+      </tr></thead><tbody id="tbody"></tbody></table>
+      <div id="ndmsg" class="ndmsg" style="display:none">No samples match</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA=[
+ {sno:"0001-QS-00522",date:"2025-06-06",item:"AC-RAW",type:"Arrival",contract:"",party:"ABC",status:"Approved",loc:"XXY",storLoc:"",destLoc:"",catCode:"090111",lotNo:"NAV-24014736-1",parentLot:"PLOT-2139",woNo:"",shift:"Shift 2",wt:0,wUOM:"KG",rq:19200,rUOM:"KG",mc:null,mcMin:null,mcMax:null,mcR:"",yield:57.6,sc19:0,sc18:0,sc17:0,sc15:0,sc14:0,sc13:0,pb:0,bbb:0,blacks:0,browns:20.3,idb1:0,pBlk:0,pBrn:0,pulper:0,foreign:0,immature:0,mouldy:0,wet:0,pbFlats:0,spotted:0,unhulled:0,broken:0,idb2:0,bleach:0,bits:10.6,aroma:2,acidity:3,body:3,cleanBal:4,greenApp:0,roastApp:0,rating:4,lm:"2025-06-06"},
+ {sno:"0001-QS-00523",date:"2025-06-11",item:"AC-AAA",type:"AF",contract:"",party:"XYZ",status:"Approved",loc:"XXY",storLoc:"G14B04",destLoc:"MILL-WH-14",catCode:"09011129",lotNo:"0001-LOT-001905",parentLot:"PLOT-2791",woNo:"0001-WO-00001",shift:"Shift 2",wt:0,wUOM:"KG",rq:19200,rUOM:"KG",mc:12.6,mcMin:9,mcMax:13,mcR:"Passed",yield:null,sc19:0,sc18:0,sc17:0,sc15:0,sc14:0,sc13:0,pb:0,bbb:0,blacks:0,browns:0,idb1:0,pBlk:0,pBrn:0,pulper:0,foreign:0,immature:0,mouldy:0,wet:0,pbFlats:0,spotted:0,unhulled:0,broken:0,idb2:0,bleach:0,bits:0,aroma:0,acidity:0,body:0,cleanBal:0,greenApp:0,roastApp:0,rating:0,lm:"2025-06-11"},
+ {sno:"0001-QS-00524",date:"2026-02-22",item:"PL-CB",type:"Offer Sample - Inbound",contract:"",party:"CDE",status:"Pending",loc:"XXY",storLoc:"",destLoc:"",catCode:"09011119",lotNo:"",parentLot:"",woNo:"",shift:"Shift 3",wt:null,wUOM:"",rq:19200,rUOM:"KG",mc:10.1,mcMin:9,mcMax:12,mcR:"Passed",yield:0,sc19:0,sc18:0,sc17:71.7,sc15:22.9,sc14:5.4,sc13:0,pb:0,bbb:0,blacks:0,browns:3,idb1:0,pBlk:0,pBrn:0,pulper:0,foreign:0,immature:0,mouldy:0,wet:0,pbFlats:0,spotted:0,unhulled:0,broken:2.8,idb2:0,bleach:0,bits:0,aroma:0,acidity:0,body:0,cleanBal:0,greenApp:0,roastApp:0,rating:0,lm:"2026-02-23"},
+ {sno:"0001-QS-00525",date:"2025-06-10",item:"RC-CB",type:"Offer Sample - Outbound",contract:"",party:"UHY",status:"Pending",loc:"XXY",storLoc:"",destLoc:"",catCode:"09011149",lotNo:"L25420330",parentLot:"",woNo:"",shift:"Shift 1",wt:null,wUOM:"",rq:19200,rUOM:"KG",mc:11,mcMin:9,mcMax:13,mcR:"Passed",yield:0,sc19:0,sc18:0,sc17:0,sc15:0,sc14:0,sc13:0,pb:0,bbb:0,blacks:0,browns:0,idb1:0,pBlk:0,pBrn:0,pulper:0,foreign:0,immature:0,mouldy:0,wet:0,pbFlats:0,spotted:0,unhulled:0,broken:0,idb2:0,bleach:0,bits:0,aroma:0,acidity:0,body:0,cleanBal:0,greenApp:0,roastApp:0,rating:0,lm:"2025-06-12"},
+ {sno:"0001-QS-00526",date:"2025-07-05",item:"RC-PB",type:"Outbound / Dispatch",contract:"",party:"POL",status:"Pending",loc:"XXY",storLoc:"G06B05",destLoc:"MILL-WH-06",catCode:"09011142",lotNo:"0001-LOT-002165",parentLot:"PLOT-3347",woNo:"0001-WO-00100",shift:"Shift 1",wt:0,wUOM:"KG",rq:19200,rUOM:"KG",mc:12.4,mcMin:9,mcMax:13,mcR:"Passed",yield:0,sc19:0,sc18:0,sc17:0,sc15:2,sc14:0,sc13:0,pb:98,bbb:0,blacks:0,browns:3,idb1:0,pBlk:0,pBrn:0,pulper:0,foreign:0,immature:0,mouldy:0,wet:0,pbFlats:0,spotted:0,unhulled:0,broken:1,idb2:0,bleach:0,bits:0,aroma:0,acidity:0,body:0,cleanBal:3,greenApp:0,roastApp:0,rating:0,lm:"2025-07-05"},
+ {sno:"0001-QS-00527",date:"2025-06-11",item:"RC-A",type:"PSS - HO Outbound",contract:"SC-91-25-0055 - 8",party:"HGB",status:"Approved",loc:"XXY",storLoc:"",destLoc:"",catCode:"09011149",lotNo:"L25013050/3051",parentLot:"",woNo:"",shift:"",wt:null,wUOM:"",rq:19200,rUOM:"KG",mc:11.8,mcMin:9,mcMax:13,mcR:"Passed",yield:0,sc19:0,sc18:20.3,sc17:74.1,sc15:5.5,sc14:0,sc13:0,pb:0,bbb:0,blacks:0,browns:0,idb1:0,pBlk:0.6,pBrn:0,pulper:0,foreign:0,immature:0,mouldy:0,wet:0,pbFlats:0,spotted:0,unhulled:0,broken:0.3,idb2:0,bleach:1.6,bits:0,aroma:4,acidity:0,body:0,cleanBal:0,greenApp:0,roastApp:0,rating:4,lm:"2025-06-11"},
+ {sno:"0001-QS-00528",date:"2026-01-09",item:"PL-A",type:"PSS - Mill Stock Sample",contract:"",party:"BGV",status:"Pending",loc:"XXY",storLoc:"",destLoc:"",catCode:"09011111",lotNo:"",parentLot:"",woNo:"",shift:"Shift 1",wt:null,wUOM:"",rq:19200,rUOM:"KG",mc:11.6,mcMin:9,mcMax:12,mcR:"Passed",yield:0,sc19:10.3,sc18:28.6,sc17:47.9,sc15:13.3,sc14:0,sc13:0,pb:0,bbb:0,blacks:0,browns:2,idb1:0,pBlk:0,pBrn:0,pulper:0,foreign:0,immature:0,mouldy:0,wet:0,pbFlats:0,spotted:0,unhulled:0,broken:1,idb2:0,bleach:0,bits:0,aroma:0,acidity:4,body:0,cleanBal:0,greenApp:0,roastApp:0,rating:0,lm:"2026-01-09"},
+ {sno:"0001-QS-00529",date:"2025-12-10",item:"AC-AA",type:"PSS - Outbound",contract:"SC-91-25-0329 - 9",party:"GFD",status:"Pending",loc:"XXY",storLoc:"",destLoc:"",catCode:"09011129",lotNo:"0001-WO-00315",parentLot:"",woNo:"",shift:"",wt:null,wUOM:"",rq:19200,rUOM:"KG",mc:10.3,mcMin:9,mcMax:13,mcR:"Passed",yield:0,sc19:31.9,sc18:61.3,sc17:6.6,sc15:0,sc14:0,sc13:0,pb:0,bbb:0,blacks:0,browns:1,idb1:0,pBlk:0,pBrn:0,pulper:0,foreign:0,immature:0,mouldy:0,wet:0,pbFlats:0,spotted:0,unhulled:0,broken:0.6,idb2:0,bleach:2,bits:0,aroma:3,acidity:0,body:4,cleanBal:0,greenApp:0,roastApp:0,rating:0,lm:"2025-12-10"},
+ {sno:"0001-QS-00530",date:"2025-12-10",item:"RC-AAA",type:"SS",contract:"SC-91-25-0323 - 4",party:"CVD",status:"Approved",loc:"XXY",storLoc:"",destLoc:"",catCode:"09011149",lotNo:"",parentLot:"",woNo:"",shift:"",wt:null,wUOM:"",rq:19200,rUOM:"KG",mc:11.3,mcMin:9,mcMax:13,mcR:"Passed",yield:0,sc19:91.5,sc18:4,sc17:4.5,sc15:0,sc14:0,sc13:0,pb:0,bbb:0,blacks:0,browns:2,idb1:0,pBlk:0,pBrn:0,pulper:0,foreign:0,immature:0,mouldy:0,wet:0,pbFlats:0,spotted:0,unhulled:0,broken:1,idb2:0,bleach:0,bits:0,aroma:0,acidity:0,body:0,cleanBal:0,greenApp:0,roastApp:0,rating:0,lm:"2025-12-10"},
+ {sno:"0001-QS-00531",date:"2026-01-10",item:"AC-PB",type:"Type Sample",contract:"",party:"SRG",status:"Pending",loc:"XXY",storLoc:"",destLoc:"",catCode:"09011122",lotNo:"",parentLot:"",woNo:"",shift:"Shift 1",wt:null,wUOM:"",rq:19200,rUOM:"KG",mc:12,mcMin:9,mcMax:13,mcR:"Passed",yield:0,sc19:0,sc18:0,sc17:0,sc15:6.1,sc14:0,sc13:0,pb:93.9,bbb:0,blacks:0,browns:3,idb1:0,pBlk:0,pBrn:0,pulper:0,foreign:0,immature:0,mouldy:0,wet:0,pbFlats:0,spotted:0,unhulled:0,broken:1,idb2:0,bleach:0,bits:0,aroma:0,acidity:0,body:0,cleanBal:0,greenApp:0,roastApp:0,rating:0,lm:"2026-01-10"}
+];
+
+const DC=[{k:"blacks",l:"Blacks",p:1},{k:"browns",l:"Browns",p:1},{k:"idb1",l:"IDB (>1)",p:0},{k:"pBlk",l:"Partial Blacks",p:0},{k:"pBrn",l:"Partial Browns",p:0},{k:"pulper",l:"Pulper Cuts",p:0},{k:"foreign",l:"Foreign Matter",p:0},{k:"immature",l:"Immature",p:0},{k:"mouldy",l:"Mouldy",p:0},{k:"wet",l:"Wet Beans",p:0}];
+const TC=[{k:"pbFlats",l:"PB/Flats"},{k:"spotted",l:"Spotted Beans"},{k:"unhulled",l:"Unhulled Beans"},{k:"broken",l:"Broken/Cut/Shells"},{k:"idb2",l:"IDB (1 Hole)"},{k:"bleach",l:"Bleached/Bald"},{k:"bits",l:"Bits"}];
+const SCG=[{k:"sc19",l:"19 AAA",c:"#004b3a"},{k:"sc18",l:"18 AA",c:"#1a6650"},{k:"sc17",l:"17 A",c:"#3b8c6a"},{k:"sc15",l:"15 B",c:"#5ECaa6"},{k:"sc14",l:"14 C",c:"#a8d9c8"},{k:"sc13",l:"13 C",c:"#d0ece5"},{k:"pb",l:"PB",c:"#f4da70"},{k:"bbb",l:"BBB",c:"#c9b450"}];
+const CK=[{k:"aroma",l:"Aroma",c:"#5ECaa6"},{k:"acidity",l:"Acidity",c:"#f4da70"},{k:"body",l:"Body",c:"#fb9a7e"},{k:"cleanBal",l:"Clean/Balance",c:"#7DCCD0"}];
+const CK_DISPLAY=[{k:"aroma",l:"Aroma",c:"#5ECaa6"},{k:"acidity",l:"Acidity",c:"#f4da70"},{k:"body",l:"Body",c:"#fb9a7e"},{k:"cleanBal",l:"Clean/Balance",c:"#7DCCD0"},{k:"greenApp",l:"Green App.",c:"#3b8c6a"},{k:"roastApp",l:"Roast App.",c:"#817ed0"},{k:"rating",l:"Overall",c:"#f4da70"}];
+const FM={contract:"contract",party:"party",item:"item",sample:"sno",type:"type",status:"status",loc:"loc"};
+const AF={contract:"",party:"",item:"",sample:"",type:"",status:"",loc:""};
+const DD=DATA.map(r=>r.date).sort();
+
+// range state: mc, cup, + per cupping attribute
+let mcMin2,mcMax2,mcLo,mcHi,cupLo=0,cupHi=5,mcOn=false,cupOn=false,scChart=null;
+// cupping attribute filters: {aroma:{lo,hi,on}, ...}
+const CAF={};
+const dragging={};
+
+// ── INIT ────────────────────────────────────────────────────────────
+function initSliders(){
+  const mv=DATA.map(r=>r.mc).filter(v=>v!=null);
+  mcMin2=Math.round(Math.min(...mv)*10)/10;
+  mcMax2=Math.round(Math.max(...mv)*10)/10;
+  mcLo=mcMin2; mcHi=mcMax2;
+  ['mc-rlo','mc-rhi'].forEach(id=>{const el=document.getElementById(id);el.min=mcMin2;el.max=mcMax2;el.step=0.1;});
+  document.getElementById('mc-rlo').value=mcMin2;
+  document.getElementById('mc-rhi').value=mcMax2;
+  document.getElementById('cup-rlo').value=0;
+  document.getElementById('cup-rhi').value=5;
+  document.getElementById('mc-lmin').textContent=mcMin2.toFixed(1)+'%';
+  document.getElementById('mc-lmax').textContent=mcMax2.toFixed(1)+'%';
+  ['mc','cup'].forEach(t=>{
+    ['rlo','rhi'].forEach(s=>document.getElementById(t+'-'+s).addEventListener('input',()=>slCh(t)));
+    wireDot(t,'lo'); wireDot(t,'hi');
+    wireTrack(t);
+    drawR(t);
+  });
+  initCupAttrs();
+}
+
+function wireDot(t,h){
+  const dot=document.getElementById(t+'-d'+h);
+  dot.addEventListener('mousedown',e=>startDrag(t,h,e));
+  dot.addEventListener('touchstart',e=>startDrag(t,h,e),{passive:false});
+}
+function wireTrack(t){
+  document.getElementById(t+'-track').addEventListener('click',e=>{
+    if(e.target.classList.contains('rdot'))return;
+    snapTrack(t,e.clientX);
+  });
+}
+function snapTrack(t,clientX){
+  const rect=document.getElementById(t+'-track').getBoundingClientRect();
+  const am=t==='mc'?mcMin2:0, ax=t==='mc'?mcMax2:5;
+  const val=Math.round((am+Math.max(0,Math.min(1,(clientX-rect.left)/rect.width))*(ax-am))*10)/10;
+  const lo=t==='mc'?mcLo:cupLo, hi=t==='mc'?mcHi:cupHi;
+  if(Math.abs(val-lo)<=Math.abs(val-hi)){setLo(t,Math.min(val,hi));}
+  else{setHi(t,Math.max(val,lo));}
+  syncSliderInputs(t); markOn(t); drawR(t); rebO(); go();
+}
+
+// cupping attribute filter UI
+function initCupAttrs(){
+  const grid=document.getElementById('cup-attr-grid');
+  grid.innerHTML='';
+  CK.forEach(ck=>{
+    CAF[ck.k]={lo:0,hi:5,on:false};
+    dragging[ck.k]={h:null};
+    grid.innerHTML+=`
+    <div class="cup-rbox">
+      <label>${ck.l}</label>
+      <div class="cup-rcard" id="ca-card-${ck.k}">
+        <input class="cup-rnum" id="ca-nlo-${ck.k}" type="number" min="0" max="5" step="0.1" placeholder="0" oninput="caNnum('${ck.k}')">
+        <div class="cup-rtrack" id="ca-track-${ck.k}">
+          <div class="cup-rfill" id="ca-fill-${ck.k}"></div>
+          <input type="range" id="ca-rlo-${ck.k}" min="0" max="5" step="0.1">
+          <input type="range" id="ca-rhi-${ck.k}" min="0" max="5" step="0.1">
+          <div class="cup-rdot" id="ca-dlo-${ck.k}"></div>
+          <div class="cup-rdot hi" id="ca-dhi-${ck.k}"></div>
+        </div>
+        <input class="cup-rnum" id="ca-nhi-${ck.k}" type="number" min="0" max="5" step="0.1" placeholder="5" oninput="caNnum('${ck.k}')">
+      </div>
+    </div>`;
+  });
+  // wire after build
+  CK.forEach(ck=>{
+    document.getElementById('ca-rlo-'+ck.k).value=0;
+    document.getElementById('ca-rhi-'+ck.k).value=5;
+    ['rlo','rhi'].forEach(s=>document.getElementById('ca-'+s+'-'+ck.k).addEventListener('input',()=>caSlCh(ck.k)));
+    ['lo','hi'].forEach(h=>{
+      const dot=document.getElementById('ca-d'+h+'-'+ck.k);
+      dot.addEventListener('mousedown',e=>startCaDrag(ck.k,h,e));
+      dot.addEventListener('touchstart',e=>startCaDrag(ck.k,h,e),{passive:false});
+    });
+    document.getElementById('ca-track-'+ck.k).addEventListener('click',e=>{
+      if(e.target.classList.contains('cup-rdot'))return;
+      snapCaTrack(ck.k,e.clientX);
+    });
+    drawCA(ck.k);
+  });
+}
+
+function caSlCh(k){
+  let lv=+document.getElementById('ca-rlo-'+k).value;
+  let hv=+document.getElementById('ca-rhi-'+k).value;
+  if(lv>hv){const t=lv;lv=hv;hv=t;document.getElementById('ca-rlo-'+k).value=lv;document.getElementById('ca-rhi-'+k).value=hv;}
+  CAF[k].lo=lv; CAF[k].hi=hv; CAF[k].on=!(lv===0&&hv===5);
+  document.getElementById('ca-nlo-'+k).value=lv.toFixed(1);
+  document.getElementById('ca-nhi-'+k).value=hv.toFixed(1);
+  drawCA(k); updateCupBadge(); rebO(); go();
+}
+function caNnum(k){
+  let lv=parseFloat(document.getElementById('ca-nlo-'+k).value)||0;
+  let hv=parseFloat(document.getElementById('ca-nhi-'+k).value)||5;
+  lv=Math.max(0,Math.min(lv,5)); hv=Math.max(0,Math.min(hv,5));
+  if(lv>hv)lv=hv;
+  CAF[k].lo=lv; CAF[k].hi=hv; CAF[k].on=!(lv===0&&hv===5);
+  document.getElementById('ca-rlo-'+k).value=lv;
+  document.getElementById('ca-rhi-'+k).value=hv;
+  drawCA(k); updateCupBadge(); rebO(); go();
+}
+function drawCA(k){
+  const lv=CAF[k].lo, hv=CAF[k].hi;
+  const lp=lv/5*100, hp=hv/5*100;
+  document.getElementById('ca-fill-'+k).style.left=lp+'%';
+  document.getElementById('ca-fill-'+k).style.width=(hp-lp)+'%';
+  document.getElementById('ca-dlo-'+k).style.left=lp+'%';
+  document.getElementById('ca-dhi-'+k).style.left=hp+'%';
+  document.getElementById('ca-card-'+k).classList.toggle('on',CAF[k].on);
+}
+function startCaDrag(k,h,e){
+  e.preventDefault();
+  dragging[k].h=h;
+  const onMove=ev=>doCaDrag(k,ev.type==='mousemove'?ev.clientX:ev.touches[0].clientX);
+  const onUp=()=>{dragging[k].h=null;document.removeEventListener('mousemove',onMove);document.removeEventListener('touchmove',onMove);document.removeEventListener('mouseup',onUp);document.removeEventListener('touchend',onUp);};
+  document.addEventListener('mousemove',onMove);document.addEventListener('touchmove',onMove,{passive:false});
+  document.addEventListener('mouseup',onUp);document.addEventListener('touchend',onUp);
+}
+function doCaDrag(k,clientX){
+  const rect=document.getElementById('ca-track-'+k).getBoundingClientRect();
+  let val=Math.round((Math.max(0,Math.min(1,(clientX-rect.left)/rect.width))*5)*10)/10;
+  if(dragging[k].h==='lo'){val=Math.min(val,CAF[k].hi);CAF[k].lo=val;document.getElementById('ca-rlo-'+k).value=val;document.getElementById('ca-nlo-'+k).value=val.toFixed(1);}
+  else{val=Math.max(val,CAF[k].lo);CAF[k].hi=val;document.getElementById('ca-rhi-'+k).value=val;document.getElementById('ca-nhi-'+k).value=val.toFixed(1);}
+  CAF[k].on=!(CAF[k].lo===0&&CAF[k].hi===5);
+  drawCA(k); updateCupBadge(); rebO(); go();
+}
+function snapCaTrack(k,clientX){
+  const rect=document.getElementById('ca-track-'+k).getBoundingClientRect();
+  const val=Math.round((Math.max(0,Math.min(1,(clientX-rect.left)/rect.width))*5)*10)/10;
+  if(Math.abs(val-CAF[k].lo)<=Math.abs(val-CAF[k].hi)){CAF[k].lo=Math.min(val,CAF[k].hi);document.getElementById('ca-rlo-'+k).value=CAF[k].lo;document.getElementById('ca-nlo-'+k).value=CAF[k].lo.toFixed(1);}
+  else{CAF[k].hi=Math.max(val,CAF[k].lo);document.getElementById('ca-rhi-'+k).value=CAF[k].hi;document.getElementById('ca-nhi-'+k).value=CAF[k].hi.toFixed(1);}
+  CAF[k].on=!(CAF[k].lo===0&&CAF[k].hi===5);
+  drawCA(k); updateCupBadge(); rebO(); go();
+}
+function updateCupBadge(){
+  const n=CK.filter(ck=>CAF[ck.k].on).length;
+  const badge=document.getElementById('cft-badge');
+  const toggle=document.getElementById('cft-toggle');
+  if(n>0){badge.textContent=n+' active';badge.classList.add('vis');toggle.classList.add('active');}
+  else{badge.classList.remove('vis');toggle.classList.remove('active');}
+}
+function toggleCupFilters(){
+  document.getElementById('cft-toggle').classList.toggle('open');
+  document.getElementById('cft-body').classList.toggle('open');
+}
+function clrAllCupAttrs(){
+  CK.forEach(ck=>{CAF[ck.k].lo=0;CAF[ck.k].hi=5;CAF[ck.k].on=false;document.getElementById('ca-rlo-'+ck.k).value=0;document.getElementById('ca-rhi-'+ck.k).value=5;document.getElementById('ca-nlo-'+ck.k).value='';document.getElementById('ca-nhi-'+ck.k).value='';drawCA(ck.k);});
+  updateCupBadge(); rebO(); go();
+}
+
+// ── MAIN SLIDER DRAG ────────────────────────────────────────────────
+const drag2={mc:null,cup:null};
+function startDrag(t,h,e){
+  e.preventDefault(); drag2[t]=h;
+  const onMove=ev=>doDrag(t,ev.type==='mousemove'?ev.clientX:ev.touches[0].clientX);
+  const onUp=()=>{drag2[t]=null;document.removeEventListener('mousemove',onMove);document.removeEventListener('touchmove',onMove);document.removeEventListener('mouseup',onUp);document.removeEventListener('touchend',onUp);};
+  document.addEventListener('mousemove',onMove);document.addEventListener('touchmove',onMove,{passive:false});
+  document.addEventListener('mouseup',onUp);document.addEventListener('touchend',onUp);
+}
+function doDrag(t,clientX){
+  const rect=document.getElementById(t+'-track').getBoundingClientRect();
+  const am=t==='mc'?mcMin2:0, ax=t==='mc'?mcMax2:5;
+  let val=Math.round((am+Math.max(0,Math.min(1,(clientX-rect.left)/rect.width))*(ax-am))*10)/10;
+  val=Math.max(am,Math.min(ax,val));
+  if(drag2[t]==='lo'){setLo(t,Math.min(val,t==='mc'?mcHi:cupHi));}
+  else{setHi(t,Math.max(val,t==='mc'?mcLo:cupLo));}
+  syncSliderInputs(t); markOn(t); drawR(t); rebO(); go();
+}
+function slCh(t){
+  let lv=+document.getElementById(t+'-rlo').value, hv=+document.getElementById(t+'-rhi').value;
+  if(lv>hv){const tmp=lv;lv=hv;hv=tmp;document.getElementById(t+'-rlo').value=lv;document.getElementById(t+'-rhi').value=hv;}
+  setLo(t,lv); setHi(t,hv); syncSliderInputs(t); markOn(t); drawR(t); rebO(); go();
+}
+function numCh(t){
+  const am=t==='mc'?mcMin2:0, ax=t==='mc'?mcMax2:5;
+  let lv=parseFloat(document.getElementById(t+'-nlo').value)||am;
+  let hv=parseFloat(document.getElementById(t+'-nhi').value)||ax;
+  lv=Math.max(am,Math.min(lv,ax)); hv=Math.max(am,Math.min(hv,ax));
+  if(lv>hv)lv=hv;
+  setLo(t,lv); setHi(t,hv);
+  document.getElementById(t+'-rlo').value=lv; document.getElementById(t+'-rhi').value=hv;
+  markOn(t); drawR(t); rebO(); go();
+}
+function setLo(t,v){if(t==='mc')mcLo=v;else cupLo=v;}
+function setHi(t,v){if(t==='mc')mcHi=v;else cupHi=v;}
+function getLo(t){return t==='mc'?mcLo:cupLo;}
+function getHi(t){return t==='mc'?mcHi:cupHi;}
+function syncSliderInputs(t){
+  document.getElementById(t+'-nlo').value=getLo(t).toFixed(1);
+  document.getElementById(t+'-nhi').value=getHi(t).toFixed(1);
+  document.getElementById(t+'-rlo').value=getLo(t);
+  document.getElementById(t+'-rhi').value=getHi(t);
+}
+function markOn(t){
+  if(t==='mc')mcOn=!(mcLo===mcMin2&&mcHi===mcMax2);
+  else cupOn=!(cupLo===0&&cupHi===5);
+}
+function drawR(t){
+  const am=t==='mc'?mcMin2:0, ax=t==='mc'?mcMax2:5, span=ax-am||1;
+  const lv=getLo(t), hv=getHi(t);
+  const lp=(lv-am)/span*100, hp=(hv-am)/span*100;
+  document.getElementById(t+'-fill').style.left=lp+'%';
+  document.getElementById(t+'-fill').style.width=(hp-lp)+'%';
+  document.getElementById(t+'-dlo').style.left=lp+'%';
+  document.getElementById(t+'-dhi').style.left=hp+'%';
+  const on=t==='mc'?mcOn:cupOn;
+  document.getElementById(t+'-card').classList.toggle('on',on);
+  document.getElementById(t+'-rx').classList.toggle('vis',on);
+}
+function clrR(t){
+  const am=t==='mc'?mcMin2:0, ax=t==='mc'?mcMax2:5;
+  setLo(t,am); setHi(t,ax);
+  document.getElementById(t+'-rlo').value=am; document.getElementById(t+'-rhi').value=ax;
+  document.getElementById(t+'-nlo').value=''; document.getElementById(t+'-nhi').value='';
+  if(t==='mc')mcOn=false;else cupOn=false;
+  drawR(t); rebO(); go();
+}
+
+// ── DATE QUICK BUTTONS ───────────────────────────────────────────────
+let activeQuick=null;
+function setQuick(q){
+  const now=new Date();
+  let fr,to;
+  if(q==='today'){fr=to=now.toISOString().slice(0,10);}
+  else if(q==='month'){fr=new Date(now.getFullYear(),now.getMonth(),1).toISOString().slice(0,10);to=new Date(now.getFullYear(),now.getMonth()+1,0).toISOString().slice(0,10);}
+  else{fr=now.getFullYear()+'-01-01';to=now.getFullYear()+'-12-31';}
+  document.getElementById('f-from').value=fr;
+  document.getElementById('f-to').value=to;
+  activeQuick=q;
+  ['today','month','year'].forEach(x=>document.getElementById('dq-'+x).classList.toggle('active',x===q));
+  go();
+}
+function clearQuick(){
+  activeQuick=null;
+  ['today','month','year'].forEach(x=>document.getElementById('dq-'+x).classList.remove('active'));
+}
+function clrDates(){
+  document.getElementById('f-from').value=DD[0];
+  document.getElementById('f-to').value=DD[DD.length-1];
+  clearQuick(); go();
+}
+
+// ── DYNAMIC DROPDOWNS ────────────────────────────────────────────────
+function poolFor(fid){
+  const fr=document.getElementById('f-from').value, to=document.getElementById('f-to').value;
+  return DATA.filter(r=>{
+    if(fr&&r.date<fr)return false; if(to&&r.date>to)return false;
+    for(const k in FM){if(k===fid)continue;if(AF[k]&&r[FM[k]]!==AF[k])return false;}
+    if(mcOn&&(r.mc==null||r.mc<mcLo||r.mc>mcHi))return false;
+    if(cupOn&&(!r.rating||r.rating<cupLo||r.rating>cupHi))return false;
+    for(const ck of CK){if(CAF[ck.k]&&CAF[ck.k].on){const v=r[ck.k];if(!v||v<CAF[ck.k].lo||v>CAF[ck.k].hi)return false;}}
+    return true;
+  });
+}
+function buildDD(fid){
+  const key=FM[fid], term=(document.getElementById('fi-'+fid).value||'').toLowerCase();
+  const pool=poolFor(fid);
+  const avail=new Set(pool.map(r=>r[key]).filter(v=>v&&String(v).trim()));
+  const all=[...new Set(DATA.map(r=>r[key]).filter(v=>v&&String(v).trim()))].sort();
+  const dd=document.getElementById('dd-'+fid);
+  dd.innerHTML=(term===''?'<div class="ddi ph">'+avail.size+'/'+all.length+' available</div>':'')+
+    all.filter(v=>v.toLowerCase().includes(term)).map(v=>{
+      const ok=avail.has(v);
+      return '<div class="ddi'+(AF[fid]===v?' sel':'')+(ok?'':' dis')+'"'+(ok?' onmousedown="pick(\''+fid+'\',\''+v.replace(/'/g,"\\'")+'\')"':'')+'>'+v+'</div>';
+    }).join('');
+}
+function onFI(fid){buildDD(fid);document.getElementById('dd-'+fid).classList.add('open');if(AF[fid]){AF[fid]='';syncX(fid);rebO();go();}}
+function openDD(fid){buildDD(fid);document.getElementById('dd-'+fid).classList.add('open');}
+function blurDD(fid){setTimeout(()=>document.getElementById('dd-'+fid).classList.remove('open'),200);}
+function pick(fid,val){AF[fid]=val;document.getElementById('fi-'+fid).value=val;document.getElementById('dd-'+fid).classList.remove('open');syncX(fid);rebO();go();}
+function clrF(fid){AF[fid]='';document.getElementById('fi-'+fid).value='';syncX(fid);rebO();go();}
+function syncX(fid){const b=document.getElementById('xb-'+fid);(AF[fid]||document.getElementById('fi-'+fid).value)?b.classList.add('vis'):b.classList.remove('vis');}
+function rebO(){for(const fid in FM){if(document.getElementById('dd-'+fid).classList.contains('open'))buildDD(fid);}}
+function resetAll(){
+  for(const k in AF){AF[k]='';document.getElementById('fi-'+k).value='';syncX(k);}
+  clrDates();clrR('mc');clrR('cup');clrAllCupAttrs();
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────
+function grd(r){const v=(r.sc19||0)+(r.sc18||0)+(r.sc17||0)+(r.sc15||0)+(r.sc14||0)+(r.sc13||0)+(r.pb||0)+(r.bbb||0);return v>0?v:null;}
+function def(r){return DC.reduce((s,d)=>s+(r[d.k]||0),0);}
+// Weighted average by rep qty
+function wavg(rows,val){
+  const valid=rows.filter(r=>val(r)!=null&&val(r)>0&&r.rq>0);
+  const wsum=valid.reduce((s,r)=>s+r.rq,0);
+  return wsum>0?valid.reduce((s,r)=>s+val(r)*r.rq,0)/wsum:null;
+}
+function fp(v){return v==null?'—':v.toFixed(1)+'%';}
+function agg(fd,k,sum){const vs=fd.map(r=>r[k]||0);if(sum)return vs.reduce((a,b)=>a+b,0);const nz=vs.filter(v=>v>0);return nz.length?nz.reduce((a,b)=>a+b)/nz.length:0;}
+function isSum(){return AF.sample||AF.contract;}
+function ddActive(){return Object.values(AF).some(v=>v)||document.getElementById('f-from').value!==DD[0]||document.getElementById('f-to').value!==DD[DD.length-1];}
+function sdi(l,v){return '<div class="sdi"><div class="sl">'+l+'</div><div class="sv">'+v+'</div></div>';}
+function cupAttrOn(){return CK.some(ck=>CAF[ck.k]&&CAF[ck.k].on);}
+
+// ── MAIN APPLY ───────────────────────────────────────────────────────
+function go(){
+  const fr=document.getElementById('f-from').value, to=document.getElementById('f-to').value;
+  const base=r=>{
+    if(fr&&r.date<fr)return false; if(to&&r.date>to)return false;
+    for(const k in FM)if(AF[k]&&r[FM[k]]!==AF[k])return false;
+    return true;
+  };
+  const full=DATA.filter(r=>{
+    if(!base(r))return false;
+    if(mcOn&&(r.mc==null||r.mc<mcLo||r.mc>mcHi))return false;
+    if(cupOn&&(!r.rating||r.rating<cupLo||r.rating>cupHi))return false;
+    // cupping attribute filters
+    for(const ck of CK){
+      if(CAF[ck.k]&&CAF[ck.k].on){
+        const v=r[ck.k];
+        if(!v||v<CAF[ck.k].lo||v>CAF[ck.k].hi)return false;
+      }
+    }
+    return true;
+  });
+  const forCup=DATA.filter(r=>{
+    if(!base(r))return false;
+    if(cupOn&&(!r.rating||r.rating<cupLo||r.rating>cupHi))return false;
+    for(const ck of CK){if(CAF[ck.k]&&CAF[ck.k].on){const v=r[ck.k];if(!v||v<CAF[ck.k].lo||v>CAF[ck.k].hi)return false;}}
+    return true;
+  });
+
+  document.getElementById('hdr-total').textContent=full.length;
+  document.getElementById('hdr-pend').textContent=full.filter(r=>r.status==='Pending').length;
+  document.getElementById('rcnt').textContent=full.length+' of '+DATA.length+' samples';
+
+  const rng=mcOn||cupOn||cupAttrOn();
+  ['kc-mc','kc-gr','kc-df','kc-yd'].forEach(id=>document.getElementById(id).classList.toggle('muted',rng));
+  if(!rng){
+    document.getElementById('k-mc').textContent=fp(wavg(full,r=>r.mc));
+    document.getElementById('k-gr').textContent=fp(wavg(full,r=>grd(r)));
+    document.getElementById('k-df').textContent=fp(wavg(full,r=>def(r)));
+    const rw=full.filter(r=>r.item&&r.item.toUpperCase().includes('RAW'));
+    document.getElementById('k-yd').textContent=rw.length?fp(wavg(rw,r=>r.yield)):'—';
+  }else['k-mc','k-gr','k-df','k-yd'].forEach(id=>document.getElementById(id).textContent='—');
+
+  // detail card
+  const sd=document.getElementById('sdet');
+  if(AF.sample&&full.length===1){
+    const r=full[0]; sd.style.display='block';
+    document.getElementById('sdet-title').textContent='Sample details — '+r.sno;
+    document.getElementById('sdet-grid').innerHTML=
+      sdi('Date',r.date)+sdi('Status',r.status==='Approved'?'<span class="spa">Approved</span>':'<span class="spp">Pending</span>')+
+      sdi('Contract No.',r.contract||'—')+sdi('Party',r.party||'—')+
+      sdi('Sample Type',r.type||'—')+sdi('Item',r.item||'—')+
+      sdi('Representative Qty',r.rq?r.rq+' '+r.rUOM:'—');
+  } else if(AF.contract&&full.length>0){
+    const r=full[0]; sd.style.display='block';
+    document.getElementById('sdet-title').textContent='Contract details — '+AF.contract;
+    document.getElementById('sdet-grid').innerHTML=
+      sdi('Sample No(s)',[...new Set(full.map(x=>x.sno))].join(', '))+
+      sdi('Date(s)',[...new Set(full.map(x=>x.date))].sort().join(', '))+
+      sdi('Party',r.party||'—')+sdi('Sample Type',[...new Set(full.map(x=>x.type))].join(', '))+
+      sdi('Item',[...new Set(full.map(x=>x.item))].join(', '))+
+      sdi('Status',[...new Set(full.map(x=>x.status))].map(s=>s==='Approved'?'<span class="spa">Approved</span>':'<span class="spp">Pending</span>').join(' '))+
+      sdi('Representative Qty',r.rq?r.rq+' '+r.rUOM:'—');
+  } else sd.style.display='none';
+
+  const ddA=ddActive(), showP=ddA&&!mcOn, sum=isSum(), ml=sum?'Total':'Average';
+  ['sc-mode','df-mode','tr-mode'].forEach(id=>{const el=document.getElementById(id);if(showP){el.textContent=ml;el.style.display='inline';}else el.style.display='none';});
+  const emp=m=>'<div class="emp"><div class="emp-icon">▽</div><div class="emp-txt">'+m+'</div></div>';
+  if(showP){const pfd=DATA.filter(base);renderSc(pfd,sum,!!isSum());renderDf(pfd,sum);renderTr(pfd,sum);}
+  else{const m=!ddA?'Apply a dropdown filter to see data':'Range filter active — panels use dropdown filters';['sc-wrap','df-wrap','tr-wrap'].forEach(id=>document.getElementById(id).innerHTML=emp(m));if(scChart){scChart.destroy();scChart=null;}}
+  renderCup(forCup); renderTbl(full);
+}
+
+function renderSc(fd,sum,ctr){
+  const tots=SCG.map(s=>agg(fd,s.k,sum)), grand=tots.reduce((a,b)=>a+b,0);
+  const w=document.getElementById('sc-wrap');
+  if(!grand){if(scChart){scChart.destroy();scChart=null;}w.innerHTML=emp('No grade screen data');return;}
+  const ct=ctr?'<div class="dlbl"><div class="dp">'+grand.toFixed(1)+'%</div><div class="dt">Total Grade %</div></div>':'';
+  w.innerHTML='<div class="sc-layout"><div class="dwrap"><canvas id="sc-donut" width="130" height="130"></canvas>'+ct+'</div><table class="stbl"><thead><tr><th></th><th>Size</th><th>%</th></tr></thead><tbody id="sc-tb"></tbody></table></div>';
+  document.getElementById('sc-tb').innerHTML=SCG.map((s,i)=>{const pct=grand?tots[i]/grand*100:0;const hi=['sc19','sc18','sc17'].includes(s.k);return'<tr'+(hi?" class='hi'":'')+"><td><span class='scdot' style='background:"+s.c+"'></span></td><td>"+s.l+"</td><td>"+(tots[i]>0?pct.toFixed(1)+'%':'—')+"</td></tr>";}).join('');
+  if(scChart)scChart.destroy();
+  scChart=new Chart(document.getElementById('sc-donut'),{type:'doughnut',data:{labels:SCG.map(s=>s.l),datasets:[{data:tots,backgroundColor:SCG.map(s=>s.c),borderWidth:2,borderColor:'#fff'}]},options:{responsive:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+': '+c.raw.toFixed(1)+'%'}}},cutout:'60%'}});
+}
+function emp(m){return '<div class="emp"><div class="emp-icon">▽</div><div class="emp-txt">'+m+'</div></div>';}
+function renderDf(fd,sum){
+  const pri=DC.filter(d=>d.p).map(d=>({l:d.l,v:agg(fd,d.k,sum)})).filter(x=>x.v>0);
+  const sec=DC.filter(d=>!d.p).map(d=>({l:d.l,v:agg(fd,d.k,sum)})).filter(x=>x.v>0);
+  const tp=pri.reduce((s,x)=>s+x.v,0), ts=sec.reduce((s,x)=>s+x.v,0);
+  const dw=document.getElementById('df-wrap');
+  if(!tp&&!ts){dw.innerHTML='<div class="emp"><div class="emp-icon" style="color:#5ECaa6">✓</div><div class="emp-txt">No defects found</div></div>';return;}
+  dw.innerHTML='<span class="dlabel">Primary</span><div class="tags">'+(pri.length?pri.map(x=>'<span class="tag pri">'+x.l+' ('+x.v.toFixed(1)+')</span>').join(''):'<span class="ndsm">None</span>')+'</div><span class="dlabel">Secondary</span><div class="tags">'+(sec.length?sec.map(x=>'<span class="tag">'+x.l+' ('+x.v.toFixed(1)+')</span>').join(''):'<span class="ndsm">None</span>')+'</div><div class="ftots"><div class="frd"><span class="fl">Total primary</span><span class="fv">'+tp.toFixed(1)+'</span></div><div class="frd"><span class="fl">Total secondary</span><span class="fv">'+ts.toFixed(1)+'</span></div><div class="frd ft"><span class="fl">Total defects</span><span class="fv">'+(tp+ts).toFixed(1)+'</span></div></div>';
+}
+function renderTr(fd,sum){
+  const items=TC.map(d=>({l:d.l,v:agg(fd,d.k,sum)})).filter(x=>x.v>0);
+  const tot=items.reduce((s,x)=>s+x.v,0);
+  const tw=document.getElementById('tr-wrap');
+  if(!tot){tw.innerHTML='<div class="emp"><div class="emp-icon" style="color:#5ECaa6">✓</div><div class="emp-txt">No triage items found</div></div>';return;}
+  tw.innerHTML='<div class="tags">'+items.map(x=>'<span class="tag tri">'+x.l+' ('+x.v.toFixed(1)+')</span>').join('')+'</div><div class="ftots"><div class="frd ft"><span class="fl">Total triage</span><span class="fv">'+tot.toFixed(1)+'</span></div></div>';
+}
+function renderCup(fd){
+  const wc=fd.filter(r=>CK_DISPLAY.some(c=>r[c.k]>0));
+  const cg=document.getElementById('cupgrid');
+  if(!wc.length){cg.innerHTML='<p class="cupnone">No cupping scores for current selection</p>';return;}
+  cg.innerHTML=wc.map(r=>{const bars=CK_DISPLAY.filter(c=>r[c.k]>0).map(c=>'<div class="cbr"><span class="cbl">'+c.l+'</span><div class="cbt"><div class="cbf" style="width:'+Math.round(r[c.k]/5*100)+'%;background:'+c.c+'"></div></div><span class="cbv">'+r[c.k]+'/5</span></div>').join('');return'<div class="cupcard"><div class="ccsno">'+r.sno+'</div><div class="cbars">'+bars+'</div></div>';}).join('');
+}
+function renderTbl(fd){
+  const tb=document.getElementById('tbody'), nd=document.getElementById('ndmsg');
+  if(!fd.length){tb.innerHTML='';nd.style.display='block';return;}
+  nd.style.display='none';
+  tb.innerHTML=fd.map(r=>'<tr><td style="font-weight:700">'+r.sno+'</td><td>'+r.date+'</td><td>'+r.item+'</td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">'+r.type+'</td><td>'+(r.status==='Approved'?'<span class="spa">Approved</span>':'<span class="spp">Pending</span>')+'</td><td>'+r.party+'</td><td>'+r.loc+'</td><td>'+(r.storLoc||'—')+'</td><td>'+(r.destLoc||'—')+'</td><td>'+(r.catCode||'—')+'</td><td>'+(r.lotNo||'—')+'</td><td>'+(r.parentLot||'—')+'</td><td>'+(r.woNo||'—')+'</td><td>'+(r.shift||'—')+'</td><td>'+(r.contract||'—')+'</td><td>'+(r.wt!=null&&r.wt>0?r.wt+' '+r.wUOM:'—')+'</td><td>'+(r.rq?r.rq+' '+r.rUOM:'—')+'</td><td>'+(r.mc!=null?r.mc+'%':'—')+'</td><td>'+(r.mcMin||'—')+'</td><td>'+(r.mcMax||'—')+'</td><td>'+(r.mcR?'<span class="mcp">'+r.mcR+'</span>':'—')+'</td><td>'+(r.yield!=null&&r.yield>0?r.yield+'%':'—')+'</td><td style="color:var(--tmuted)">'+r.lm+'</td></tr>').join('');
+}
+
+document.getElementById('f-from').value=DD[0];
+document.getElementById('f-to').value=DD[DD.length-1];
+initSliders();
+go();
+</script>
+</body>
+</html>
